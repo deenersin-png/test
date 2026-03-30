@@ -2,530 +2,605 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SEPTA Bus Tracker</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>SEPTA Block Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    min-height: 100vh;
-    background: #0a0e17;
-    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
-    color: #e2e8f0;
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #21262d;
+    --border-light: #30363d;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --text-faint: #484f58;
+    --accent: #58a6ff;
+    --accent-dim: rgba(88,166,255,0.12);
+    --green: #3fb950;
+    --green-dim: rgba(63,185,80,0.12);
+    --yellow: #d29922;
+    --yellow-dim: rgba(210,153,34,0.12);
+    --red: #f85149;
+    --red-dim: rgba(248,81,73,0.12);
+    --purple: #bc8cff;
+    --purple-dim: rgba(188,140,255,0.12);
+    --you-glow: rgba(88,166,255,0.25);
   }
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { height: 100%; }
+  body {
+    min-height: 100%;
+    background: var(--bg);
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
 
   .header {
-    background: linear-gradient(135deg, #0f1729 0%, #162040 100%);
-    border-bottom: 1px solid rgba(59,130,246,0.2);
-    padding: 20px 24px;
+    padding: 16px 16px 14px;
+    background: var(--bg);
+    position: sticky; top: 0; z-index: 10;
+    border-bottom: 1px solid var(--border);
   }
-  .header-inner { max-width: 960px; margin: 0 auto; }
-  .header-top { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-  .logo {
-    width: 38px; height: 38px; border-radius: 8px;
-    background: linear-gradient(135deg, #3b82f6, #6366f1);
+  .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-icon {
+    width: 30px; height: 30px; border-radius: 7px;
+    background: linear-gradient(135deg, var(--accent), #bc8cff);
     display: flex; align-items: center; justify-content: center;
-    font-size: 18px; font-weight: 800; color: #fff;
-    box-shadow: 0 0 20px rgba(99,102,241,0.3);
+    font-weight: 800; font-size: 12px; color: #fff;
   }
-  .title {
-    font-size: 20px; font-weight: 700;
-    background: linear-gradient(90deg, #60a5fa, #a78bfa);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    letter-spacing: -0.02em;
-  }
-  .subtitle { font-size: 11px; color: #64748b; letter-spacing: 0.08em; }
-  .status-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    display: inline-block;
-  }
-  .status-dot.live { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
-  .status-dot.loading { background: #f59e0b; box-shadow: 0 0 8px #f59e0b; animation: pulse 1s infinite; }
-  .status-dot.error { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
-  .status-area { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-  .status-label { font-size: 11px; color: #64748b; }
+  .brand-text { font-size: 14px; font-weight: 700; letter-spacing: -0.02em; }
+  .brand-sub { font-size: 9px; color: var(--text-faint); letter-spacing: 0.06em; font-weight: 500; }
+  .status-area { display: flex; align-items: center; gap: 6px; }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .live-dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .live-dot.syncing { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); animation: pulse 1s infinite; }
+  .live-dot.off { background: var(--text-faint); }
+  .status-text { font-size: 10px; color: var(--text-faint); font-weight: 500; }
 
-  .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
-  .ctrl-label { font-size: 10px; color: #64748b; display: block; margin-bottom: 4px; letter-spacing: 0.1em; }
+  .input-row { display: flex; gap: 6px; }
+  .route-input {
+    width: 64px; background: var(--card); border: 1.5px solid var(--border-light);
+    border-radius: 9px; padding: 10px 8px;
+    font-family: inherit; font-size: 15px; font-weight: 700;
+    color: var(--purple); text-align: center;
+    outline: none; caret-color: var(--purple); transition: border-color 0.2s;
+  }
+  .route-input::placeholder { color: var(--text-faint); font-weight: 500; font-size: 11px; }
+  .route-input:focus { border-color: var(--purple); }
+  .block-input {
+    flex: 1; background: var(--card); border: 1.5px solid var(--border-light);
+    border-radius: 9px; padding: 10px 12px;
+    font-family: inherit; font-size: 18px; font-weight: 700;
+    color: var(--accent); letter-spacing: 0.1em; text-align: center;
+    outline: none; caret-color: var(--accent); transition: border-color 0.2s;
+  }
+  .block-input::placeholder { color: var(--text-faint); font-weight: 500; letter-spacing: 0.02em; font-size: 13px; }
+  .block-input:focus { border-color: var(--accent); }
+  .go-btn {
+    width: 46px; border-radius: 9px; border: none;
+    background: var(--accent); color: #0d1117;
+    font-family: inherit; font-size: 15px; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.15s; flex-shrink: 0;
+  }
+  .go-btn:active { opacity: 0.7; }
 
-  select, input[type="text"] {
-    background: #1a2238; border: 1px solid rgba(59,130,246,0.3);
-    border-radius: 6px; padding: 8px 12px; color: #60a5fa;
-    font-size: 15px; font-weight: 700; font-family: inherit;
-    cursor: pointer; outline: none;
+  .route-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 16px; background: var(--card); border-bottom: 1px solid var(--border);
   }
-  select { min-width: 90px; appearance: none; padding-right: 32px; }
-  input[type="text"] {
-    color: #e2e8f0; font-size: 12px; font-weight: 400; width: 110px;
-    border-color: rgba(255,255,255,0.08);
-  }
-  input::placeholder { color: #475569; }
+  .route-label { font-size: 12px; font-weight: 600; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+  .route-num { background: var(--accent-dim); color: var(--accent); padding: 2px 8px; border-radius: 5px; font-weight: 800; font-size: 13px; }
+  .bus-count { font-size: 11px; color: var(--text-faint); }
+  .refresh-tag { font-size: 10px; color: var(--text-faint); font-weight: 500; }
 
-  .dir-btn {
-    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 5px; padding: 7px 12px; color: #94a3b8;
-    font-size: 11px; font-family: inherit; cursor: pointer; font-weight: 600;
-    transition: all 0.15s;
-  }
-  .dir-btn.active {
-    background: rgba(59,130,246,0.2); border-color: rgba(59,130,246,0.5); color: #60a5fa;
-  }
-  .dir-btn:hover { filter: brightness(1.15); }
-
-  .action-btns { margin-left: auto; display: flex; gap: 8px; align-items: flex-end; }
-  .btn-refresh {
-    background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3);
-    border-radius: 6px; padding: 7px 14px; color: #60a5fa;
-    font-size: 11px; font-family: inherit; cursor: pointer; font-weight: 600;
-  }
-  .btn-refresh:disabled { opacity: 0.5; }
-  .btn-auto {
-    border-radius: 6px; padding: 7px 14px;
-    font-size: 11px; font-family: inherit; cursor: pointer; font-weight: 600;
-  }
-  .btn-auto.on { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; }
-  .btn-auto.off { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: #64748b; }
-
-  .stats-bar { max-width: 960px; margin: 16px auto 0; padding: 0 24px; }
-  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
-  .stat-card {
-    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 8px; padding: 12px 14px;
-  }
-  .stat-label { font-size: 10px; color: #64748b; letter-spacing: 0.1em; margin-bottom: 4px; }
-  .stat-value { font-size: 18px; font-weight: 700; }
-
-  .bus-list { max-width: 960px; margin: 16px auto; padding: 0 24px 60px; }
-
-  .error-box {
-    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
-    border-radius: 8px; padding: 14px 18px; color: #fca5a5; font-size: 12px;
-    margin-bottom: 12px; word-break: break-word;
-  }
-  .error-title { font-weight: 700; margin-bottom: 4px; }
-
-  .loading-box { text-align: center; padding: 60px 20px; color: #60a5fa; }
-  .spinner { font-size: 28px; margin-bottom: 12px; display: inline-block; animation: spin 1s linear infinite; }
-
-  .empty-box { text-align: center; padding: 60px 20px; color: #475569; }
-  .empty-icon { font-size: 40px; margin-bottom: 12px; }
-
-  .dir-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding: 0 2px; }
-  .dir-title { font-size: 11px; font-weight: 700; color: #475569; letter-spacing: 0.1em; }
-  .dir-line { flex: 1; height: 1px; background: rgba(255,255,255,0.06); }
-  .dir-count { font-size: 11px; color: #475569; }
-  .dir-group { margin-bottom: 20px; }
-
-  .bus-card {
-    border-radius: 10px; padding: 14px 18px; transition: all 0.2s; margin-bottom: 8px;
-  }
-  .bus-card.leader {
-    background: linear-gradient(135deg, rgba(34,197,94,0.06) 0%, rgba(15,23,42,0.8) 100%);
-    border: 1px solid rgba(34,197,94,0.2);
-  }
-  .bus-card.follower {
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.06);
-  }
-  .bus-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-
-  .role-badge {
-    border-radius: 5px; padding: 3px 8px;
-    font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
-  }
-  .role-badge.leader {
-    background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #4ade80;
-  }
-  .role-badge.follower {
-    background: rgba(167,139,250,0.12); border: 1px solid rgba(167,139,250,0.25); color: #a78bfa;
+  .timeline-wrap { padding: 20px 16px 100px; }
+  .timeline { position: relative; display: flex; flex-direction: column; }
+  .timeline::before {
+    content: ''; position: absolute;
+    left: 20px; top: 0; bottom: 0;
+    width: 2px; background: var(--border-light); border-radius: 1px;
   }
 
-  .block-id {
-    background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.2);
-    border-radius: 5px; padding: 3px 10px;
-    font-size: 13px; font-weight: 800; color: #60a5fa; letter-spacing: 0.05em;
+  .bus-node { position: relative; padding: 0 0 0 48px; margin-bottom: 4px; }
+  .bus-node::before {
+    content: ''; position: absolute;
+    left: 14px; top: 16px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--border-light); border: 2px solid var(--bg); z-index: 2;
   }
-  .vehicle-id { font-size: 11px; color: #64748b; }
-
-  .late-badge { margin-left: auto; border-radius: 5px; padding: 3px 10px; font-size: 12px; font-weight: 700; }
-  .late-badge.ontime { background: rgba(34,197,94,0.1); color: #4ade80; }
-  .late-badge.mild { background: rgba(245,158,11,0.1); color: #fbbf24; }
-  .late-badge.bad { background: rgba(239,68,68,0.12); color: #f87171; }
-
-  .bus-details { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 11px; color: #94a3b8; }
-  .detail-label { color: #475569; }
-  .detail-value { color: #cbd5e1; font-weight: 600; }
-  .detail-sub { color: #475569; }
-
-  .seat-badge { border-radius: 4px; padding: 1px 7px; font-weight: 600; }
-  .bus-coords { font-size: 10px; color: #334155; margin-top: 6px; }
-
-  .footer {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    background: linear-gradient(transparent, #0a0e17 40%);
-    padding: 30px 24px 14px; text-align: center;
+  .bus-node.leader::before { background: var(--green); }
+  .bus-node.follower::before { background: var(--purple); }
+  .bus-node.you::before {
+    width: 18px; height: 18px; left: 12px; top: 14px;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--you-glow), 0 0 20px var(--you-glow);
+    border-color: var(--accent);
   }
-  .footer p { font-size: 10px; color: #334155; }
 
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-
-  @media (max-width: 600px) {
-    .controls { gap: 8px; }
-    .action-btns { margin-left: 0; width: 100%; justify-content: flex-end; }
-    .stats-grid { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); }
-    .bus-top { gap: 6px; }
-    .late-badge { margin-left: 0; }
+  .node-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 12px; transition: all 0.2s;
   }
+  .bus-node.you .node-card {
+    border-color: var(--accent);
+    box-shadow: 0 0 16px var(--you-glow), inset 0 0 20px rgba(88,166,255,0.04);
+    background: linear-gradient(135deg, rgba(88,166,255,0.06), var(--card));
+  }
+
+  .node-row1 { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+  .role-tag {
+    font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .role-tag.leader { background: var(--green-dim); color: var(--green); }
+  .role-tag.follower { background: var(--purple-dim); color: var(--purple); }
+  .role-tag.you { background: var(--accent-dim); color: var(--accent); }
+
+  .dir-tag {
+    font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 4px;
+    background: var(--border); color: var(--text-dim);
+  }
+  .block-num { font-size: 14px; font-weight: 800; color: var(--text); letter-spacing: 0.06em; }
+  .bus-node.you .block-num { color: var(--accent); }
+
+  .vehicle-tag {
+    display: flex; align-items: center; gap: 3px;
+    font-size: 9px; color: var(--text-faint); font-weight: 500; margin-left: auto;
+  }
+  .vehicle-tag svg { width: 11px; height: 11px; fill: currentColor; }
+
+  .node-row2 { display: flex; align-items: center; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+  .late-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; }
+  .late-tag.ontime { background: var(--green-dim); color: var(--green); }
+  .late-tag.mild { background: var(--yellow-dim); color: var(--yellow); }
+  .late-tag.bad { background: var(--red-dim); color: var(--red); }
+
+  .seat-tag {
+    font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 4px;
+    display: flex; align-items: center; gap: 3px;
+  }
+  .seat-tag svg { width: 10px; height: 10px; fill: currentColor; }
+  .seat-tag.many { background: var(--green-dim); color: var(--green); }
+  .seat-tag.few { background: var(--yellow-dim); color: var(--yellow); }
+  .seat-tag.standing { background: var(--red-dim); color: var(--red); }
+  .seat-tag.full { background: var(--red-dim); color: var(--red); }
+  .seat-tag.na { background: var(--border); color: var(--text-faint); }
+
+  .section-label {
+    padding: 6px 0 6px 48px;
+    font-size: 10px; font-weight: 600; color: var(--text-faint);
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+
+  .msg { text-align: center; padding: 50px 20px; color: var(--text-dim); }
+  .msg .icon { font-size: 32px; margin-bottom: 10px; }
+  .msg .main { font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+  .msg .sub { font-size: 11px; color: var(--text-faint); line-height: 1.6; }
+
+  .err-box {
+    margin: 12px 16px; background: var(--red-dim);
+    border: 1px solid rgba(248,81,73,0.2); border-radius: 9px;
+    padding: 10px 14px; font-size: 11px; color: #fca5a5;
+  }
+
+  .debug {
+    margin: 6px 16px; background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-size: 9px; color: var(--text-faint);
+    font-family: 'SF Mono', monospace; max-height: 100px; overflow-y: auto;
+  }
+
+  .hidden { display: none !important; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+  .fade-in { animation: fadeIn 0.2s ease-out both; }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <div class="header-inner">
-    <div class="header-top">
-      <div class="logo">S</div>
+  <div class="header-row">
+    <div class="brand">
+      <div class="brand-icon">BT</div>
       <div>
-        <div class="title">SEPTA BUS TRACKER</div>
-        <div class="subtitle">REAL-TIME TRANSIT MONITORING</div>
-      </div>
-      <div class="status-area">
-        <span id="statusDot" class="status-dot live"></span>
-        <span id="statusLabel" class="status-label">LIVE</span>
+        <div class="brand-text">Block Tracker</div>
+        <div class="brand-sub">SEPTA BUS OPERATORS</div>
       </div>
     </div>
-    <div class="controls">
-      <div style="position:relative">
-        <label class="ctrl-label">ROUTE</label>
-        <select id="routeSelect"></select>
-        <span style="position:absolute;right:10px;bottom:10px;color:#64748b;pointer-events:none;font-size:12px">▾</span>
-      </div>
-      <div>
-        <label class="ctrl-label">DIRECTION</label>
-        <div id="dirButtons" style="display:flex;gap:4px"></div>
-      </div>
-      <div>
-        <label class="ctrl-label">BLOCK #</label>
-        <input type="text" id="blockSearch" placeholder="Search...">
-      </div>
-      <div class="action-btns">
-        <button class="btn-refresh" id="refreshBtn" onclick="fetchBuses()">↻ REFRESH</button>
-        <button class="btn-auto on" id="autoBtn" onclick="toggleAuto()">● AUTO</button>
-      </div>
+    <div class="status-area">
+      <span id="statusDot" class="live-dot off"></span>
+      <span id="statusText" class="status-text">IDLE</span>
     </div>
+  </div>
+  <div class="input-row">
+    <input type="text" id="routeInput" class="route-input" placeholder="Rte" maxlength="4" autocomplete="off">
+    <input type="text" id="blockInput" class="block-input" placeholder="Block #" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+    <button class="go-btn" onclick="startTracking()">▶</button>
   </div>
 </div>
 
-<div class="stats-bar">
-  <div class="stats-grid" id="statsGrid"></div>
+<div id="routeBar" class="route-bar hidden">
+  <div class="route-label">Route <span id="routeNum" class="route-num">—</span> <span id="busCount" class="bus-count"></span></div>
+  <span id="refreshTag" class="refresh-tag">—</span>
 </div>
 
-<div class="bus-list" id="busList"></div>
-
-<div class="footer">
-  <p>Data from SEPTA TransitView API · Auto-refreshes every 30s · Leader = bus furthest along route in each direction</p>
+<div id="debugBox" class="debug hidden"></div>
+<div id="content">
+  <div class="msg">
+    <div class="icon">🚌</div>
+    <div class="main">Enter your Route & Block #</div>
+    <div class="sub">Your bus will appear in the center<br>with leaders above and followers below</div>
+  </div>
 </div>
 
 <script>
-const ROUTES = [
-  "1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20",
-  "21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40",
-  "42","43","44","45","46","47","48","50","52","53","54","55","56","57","58","59","60","61","62","64",
-  "65","66","67","68","70","73","75","77","78","79","80","84","88","89","90","91","92","93","94","95",
-  "96","97","98","99","100","101","102","103","104","105","106","107","108","109","110","111","112",
-  "113","114","115","117","118","119","120","123","124","125","126","127","128","129","130","131","132",
-  "133","139","150","201","204","205","206","310",
-  "G","H","K","L","LUCY","BSO","MFO"
-];
+var myBlock = "";
+var myRoute = "";
+var isLoading = false;
+var autoTimer = null;
+var cdTimer = null;
+var refreshSec = 30;
+var lastUpdate = null;
+var busList = [];
+var debugMode = true; // shows debug panel
 
-const SEAT_MAP = {
-  MANY_SEATS_AVAILABLE: { text: "Many Seats", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
-  FEW_SEATS_AVAILABLE: { text: "Few Seats", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
-  STANDING_ROOM_ONLY: { text: "Standing", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
-  FULL: { text: "Full", color: "#dc2626", bg: "rgba(220,38,38,0.15)" },
-};
+var blockInput = document.getElementById("blockInput");
+var routeInput = document.getElementById("routeInput");
 
-let currentRoute = "21";
-let filterDir = "ALL";
-let blockFilter = "";
-let autoRefresh = true;
-let autoInterval = null;
-let allBuses = [];
-let lastUpdate = null;
-let isLoading = false;
+// Restore saved
+try {
+  var sb = localStorage.getItem("septa_block");
+  var sr = localStorage.getItem("septa_route");
+  if (sb) blockInput.value = sb;
+  if (sr) routeInput.value = sr;
+} catch(e) {}
 
-// --- Init ---
-const routeSel = document.getElementById("routeSelect");
-ROUTES.forEach(r => {
-  const o = document.createElement("option");
-  o.value = r; o.textContent = r;
-  if (r === "21") o.selected = true;
-  routeSel.appendChild(o);
+blockInput.addEventListener("input", function(e) {
+  e.target.value = e.target.value.replace(/\D/g, "").slice(0, 4);
 });
-routeSel.addEventListener("change", () => {
-  currentRoute = routeSel.value;
-  filterDir = "ALL";
-  fetchBuses();
+routeInput.addEventListener("input", function(e) {
+  e.target.value = e.target.value.replace(/[^a-zA-Z0-9]/g, "").slice(0, 4).toUpperCase();
 });
-document.getElementById("blockSearch").addEventListener("input", e => {
-  blockFilter = e.target.value;
-  render();
-});
+blockInput.addEventListener("keydown", function(e) { if (e.key === "Enter") startTracking(); });
+routeInput.addEventListener("keydown", function(e) { if (e.key === "Enter") startTracking(); });
 
-// --- JSONP Fetch ---
-function fetchBuses() {
-  if (isLoading) return;
-  isLoading = true;
-  setStatus("loading");
-  document.getElementById("refreshBtn").disabled = true;
-
-  // Cleanup any old callbacks
-  const cbName = "septaCb_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
-  const script = document.createElement("script");
-  let done = false;
-
-  const cleanup = () => {
-    if (done) return;
-    done = true;
-    delete window[cbName];
-    if (script.parentNode) script.parentNode.removeChild(script);
-    isLoading = false;
-    document.getElementById("refreshBtn").disabled = false;
-  };
-
-  const timeout = setTimeout(() => {
-    if (!done) {
-      cleanup();
-      setStatus("error");
-      showError("Request timed out after 10 seconds. The SEPTA API may be temporarily down.");
-    }
-  }, 10000);
-
-  window[cbName] = function(data) {
-    clearTimeout(timeout);
-    try {
-      let busList = [];
-      if (Array.isArray(data)) {
-        busList = data[0]?.bus || [];
-      } else if (data && data.bus) {
-        busList = data.bus;
-      }
-      allBuses = classifyBuses(busList);
-      lastUpdate = new Date();
-      setStatus("live");
-      clearError();
-    } catch (e) {
-      setStatus("error");
-      showError("Failed to parse response: " + e.message);
-    }
-    cleanup();
-    render();
-  };
-
-  script.src = "https://www3.septa.org/hackathon/TransitView/?route=" + encodeURIComponent(currentRoute) + "&callback=" + cbName;
-  script.onerror = function() {
-    clearTimeout(timeout);
-    cleanup();
-    setStatus("error");
-    showError("Could not load data from SEPTA API. Check your internet connection.");
-    render();
-  };
-
-  document.head.appendChild(script);
-  renderLoading();
+function dbg(msg) {
+  if (!debugMode) return;
+  var el = document.getElementById("debugBox");
+  el.classList.remove("hidden");
+  var t = new Date();
+  var ts = t.getHours() + ":" + String(t.getMinutes()).padStart(2,"0") + ":" + String(t.getSeconds()).padStart(2,"0");
+  el.innerHTML += ts + " " + esc(msg) + "<br>";
+  el.scrollTop = el.scrollHeight;
 }
 
-function classifyBuses(buses) {
-  const groups = {};
-  buses.forEach(b => {
-    const d = b.Direction || "Unknown";
-    if (!groups[d]) groups[d] = [];
-    groups[d].push(b);
-  });
+function startTracking() {
+  var block = blockInput.value.trim();
+  var route = routeInput.value.trim();
 
-  const result = [];
-  Object.entries(groups).forEach(([dir, list]) => {
-    const sorted = [...list].sort((a, b) => (b.next_stop_sequence || 0) - (a.next_stop_sequence || 0));
-    sorted.forEach((bus, i) => {
-      result.push({
-        ...bus,
-        role: i === 0 ? "LEADER" : "FOLLOWER",
-        roleIndex: i,
-        directionGroup: dir,
-        groupSize: sorted.length
-      });
-    });
-  });
-  return result;
-}
-
-// --- Auto refresh ---
-function toggleAuto() {
-  autoRefresh = !autoRefresh;
-  const btn = document.getElementById("autoBtn");
-  if (autoRefresh) {
-    btn.className = "btn-auto on";
-    btn.textContent = "● AUTO";
-    startAuto();
-  } else {
-    btn.className = "btn-auto off";
-    btn.textContent = "○ AUTO";
-    clearInterval(autoInterval);
+  if (!block || block.length < 3) {
+    showMsg("⚠️", "Enter your Block #", "Your 4-digit block number is required");
+    return;
   }
-}
-function startAuto() {
-  clearInterval(autoInterval);
-  if (autoRefresh) autoInterval = setInterval(fetchBuses, 30000);
-}
-
-// --- Status ---
-function setStatus(s) {
-  const dot = document.getElementById("statusDot");
-  const label = document.getElementById("statusLabel");
-  dot.className = "status-dot " + s;
-  label.textContent = s === "live" ? "LIVE" : s === "loading" ? "SYNCING" : "ERROR";
-}
-
-function showError(msg) {
-  const el = document.getElementById("busList");
-  el.innerHTML = '<div class="error-box"><div class="error-title">Connection Error</div>' + escHtml(msg) + '</div>';
-}
-function clearError() {}
-
-function escHtml(s) {
-  const d = document.createElement("div");
-  d.textContent = s;
-  return d.innerHTML;
-}
-
-function timeAgo(ts) {
-  if (!ts) return "";
-  const diff = Math.floor(Date.now() / 1000) - ts;
-  if (diff < 60) return diff + "s ago";
-  if (diff < 3600) return Math.floor(diff / 60) + "m ago";
-  return Math.floor(diff / 3600) + "h ago";
-}
-
-// --- Render ---
-function renderLoading() {
-  if (allBuses.length === 0) {
-    document.getElementById("busList").innerHTML =
-      '<div class="loading-box"><div class="spinner">⟳</div><div style="font-size:13px">Connecting to SEPTA API...</div><div style="font-size:11px;color:#475569;margin-top:6px">Loading Route ' + escHtml(currentRoute) + ' data via JSONP</div></div>';
-  }
-  renderStats();
-}
-
-function render() {
-  renderDirButtons();
-  renderStats();
-  renderBusList();
-}
-
-function renderDirButtons() {
-  const dirs = [...new Set(allBuses.map(b => b.directionGroup))].sort();
-  const container = document.getElementById("dirButtons");
-  container.innerHTML = "";
-  ["ALL", ...dirs].forEach(d => {
-    const btn = document.createElement("button");
-    btn.className = "dir-btn" + (filterDir === d ? " active" : "");
-    btn.textContent = d;
-    btn.onclick = () => { filterDir = d; render(); };
-    container.appendChild(btn);
-  });
-}
-
-function getFiltered() {
-  return allBuses.filter(b => {
-    if (filterDir !== "ALL" && b.directionGroup !== filterDir) return false;
-    if (blockFilter && !(b.BlockID || "").toString().includes(blockFilter)) return false;
-    return true;
-  });
-}
-
-function renderStats() {
-  const filtered = getFiltered();
-  const leaders = filtered.filter(b => b.role === "LEADER").length;
-  const followers = filtered.filter(b => b.role === "FOLLOWER").length;
-  const avgLate = filtered.length > 0
-    ? Math.round(filtered.reduce((s, b) => s + (parseInt(b.late) || 0), 0) / filtered.length) : 0;
-
-  const stats = [
-    { label: "ACTIVE BUSES", value: filtered.length, color: "#60a5fa" },
-    { label: "LEADERS", value: leaders, color: "#22c55e" },
-    { label: "FOLLOWERS", value: followers, color: "#a78bfa" },
-    { label: "AVG DELAY", value: (avgLate > 0 ? "+" : "") + avgLate + " min", color: avgLate > 5 ? "#ef4444" : avgLate > 0 ? "#f59e0b" : "#22c55e" },
-    { label: "LAST UPDATE", value: lastUpdate ? lastUpdate.toLocaleTimeString() : "—", color: "#64748b" },
-  ];
-
-  document.getElementById("statsGrid").innerHTML = stats.map(s =>
-    '<div class="stat-card"><div class="stat-label">' + s.label + '</div><div class="stat-value" style="color:' + s.color + '">' + escHtml(String(s.value)) + '</div></div>'
-  ).join("");
-}
-
-function renderBusList() {
-  const filtered = getFiltered();
-  const el = document.getElementById("busList");
-
-  if (filtered.length === 0 && !isLoading) {
-    el.innerHTML = '<div class="empty-box"><div class="empty-icon">🚌</div><div style="font-size:14px">No buses currently active on Route ' + escHtml(currentRoute) + '</div><div style="font-size:11px;margin-top:6px">Buses may not be running at this time</div></div>';
+  if (!route) {
+    showMsg("⚠️", "Enter your Route", "Route is needed (e.g. 21, 23, G, LUCY)");
     return;
   }
 
-  const dirs = [...new Set(filtered.map(b => b.directionGroup))].sort();
-  let html = "";
+  myBlock = block;
+  myRoute = route;
+  try {
+    localStorage.setItem("septa_block", myBlock);
+    localStorage.setItem("septa_route", myRoute);
+  } catch(e) {}
 
-  dirs.forEach(dir => {
-    const dirBuses = filtered.filter(b => b.directionGroup === dir).sort((a, b) => a.roleIndex - b.roleIndex);
-    if (dirBuses.length === 0) return;
+  blockInput.blur();
+  routeInput.blur();
 
-    html += '<div class="dir-group">';
-    html += '<div class="dir-header"><span class="dir-title">' + escHtml(dir.toUpperCase()) + '</span><div class="dir-line"></div><span class="dir-count">' + dirBuses.length + ' bus' + (dirBuses.length !== 1 ? 'es' : '') + '</span></div>';
+  clearInterval(autoTimer);
+  clearInterval(cdTimer);
 
-    dirBuses.forEach(bus => {
-      const isLeader = bus.role === "LEADER";
-      const late = parseInt(bus.late) || 0;
-      const seat = SEAT_MAP[bus.estimated_seat_availability] || { text: "—", color: "#64748b", bg: "transparent" };
-      const lateClass = late === 0 ? "ontime" : late > 5 ? "bad" : "mild";
-      const lateText = late === 0 ? "ON TIME" : "+" + late + " min";
-
-      html += '<div class="bus-card ' + (isLeader ? "leader" : "follower") + '">';
-      html += '<div class="bus-top">';
-      html += '<span class="role-badge ' + (isLeader ? "leader" : "follower") + '">' + (isLeader ? "★ LEADER" : "#" + (bus.roleIndex + 1) + " FOLLOWER") + '</span>';
-      html += '<span class="block-id">BLK ' + escHtml(bus.BlockID || "—") + '</span>';
-      html += '<span class="vehicle-id">V#' + escHtml(bus.VehicleID || "—") + '</span>';
-      html += '<span class="late-badge ' + lateClass + '">' + lateText + '</span>';
-      html += '</div>';
-
-      html += '<div class="bus-details">';
-      html += '<span><span class="detail-label">TO </span><span class="detail-value">' + escHtml(bus.destination || "—") + '</span></span>';
-      html += '<span><span class="detail-label">NEXT </span><span style="color:#cbd5e1">' + escHtml(bus.next_stop_name || "—") + '</span>';
-      if (bus.next_stop_sequence) html += '<span class="detail-sub"> (seq ' + bus.next_stop_sequence + ')</span>';
-      html += '</span>';
-      html += '<span class="seat-badge" style="background:' + seat.bg + ';color:' + seat.color + '">' + seat.text + '</span>';
-      html += '<span class="detail-sub">HDG ' + (bus.heading || "—") + '° · ' + timeAgo(bus.timestamp) + '</span>';
-      html += '</div>';
-
-      const lat = parseFloat(bus.lat) || 0;
-      const lng = parseFloat(bus.lng) || 0;
-      html += '<div class="bus-coords">' + lat.toFixed(5) + ', ' + lng.toFixed(5);
-      if (bus.trip) html += ' · Trip ' + escHtml(bus.trip);
-      html += '</div>';
-
-      html += '</div>';
-    });
-
-    html += '</div>';
-  });
-
-  el.innerHTML = html;
+  fetchBuses();
+  autoTimer = setInterval(fetchBuses, 30000);
+  refreshSec = 30;
+  cdTimer = setInterval(function() {
+    refreshSec--;
+    if (refreshSec < 0) refreshSec = 30;
+    var el = document.getElementById("refreshTag");
+    if (el) el.textContent = "↻ " + refreshSec + "s";
+  }, 1000);
 }
 
-// --- Start ---
-fetchBuses();
-startAuto();
+function fetchBuses() {
+  if (isLoading) return;
+  isLoading = true;
+  setStatus("syncing", "SYNCING");
+  dbg("Fetching route=" + myRoute);
+
+  var cbName = "septa_" + Date.now() + "_" + Math.random().toString(36).slice(2,7);
+  var script = document.createElement("script");
+  var done = false;
+
+  function cleanup() {
+    if (done) return;
+    done = true;
+    try { delete window[cbName]; } catch(e) {}
+    if (script.parentNode) script.parentNode.removeChild(script);
+    isLoading = false;
+  }
+
+  var timeout = setTimeout(function() {
+    if (!done) {
+      cleanup();
+      setStatus("off", "TIMEOUT");
+      showErr("Timed out after 12s. Try again.");
+      dbg("TIMEOUT");
+    }
+  }, 12000);
+
+  window[cbName] = function(data) {
+    clearTimeout(timeout);
+    dbg("Response received, type=" + typeof data + " isArray=" + Array.isArray(data));
+
+    try {
+      var buses = [];
+
+      // Log raw structure for debugging
+      try {
+        var sample = JSON.stringify(data).slice(0, 300);
+        dbg("RAW: " + sample);
+      } catch(e2) { dbg("Could not stringify raw data"); }
+
+      if (Array.isArray(data)) {
+        dbg("Array length: " + data.length);
+        for (var di = 0; di < data.length; di++) {
+          var item = data[di];
+          if (item && typeof item === "object") {
+            var keys = Object.keys(item);
+            dbg("Item[" + di + "] keys: " + keys.join(", "));
+            // Check each key - could be "bus", route number, or anything
+            for (var ki = 0; ki < keys.length; ki++) {
+              var val = item[keys[ki]];
+              if (Array.isArray(val)) {
+                dbg("Key '" + keys[ki] + "' is array, length=" + val.length);
+                buses = buses.concat(val);
+              }
+              // Single bus object at top level of array
+              else if (item.BlockID || item.lat) {
+                buses.push(item);
+                break; // Don't double-add
+              }
+            }
+          }
+        }
+      } else if (data && typeof data === "object") {
+        var topKeys = Object.keys(data);
+        dbg("Object keys: " + topKeys.join(", "));
+        for (var ti = 0; ti < topKeys.length; ti++) {
+          var tval = data[topKeys[ti]];
+          if (Array.isArray(tval)) {
+            buses = buses.concat(tval);
+          }
+        }
+      }
+
+      dbg("Total buses extracted: " + buses.length);
+      if (buses.length > 0) {
+        dbg("First bus keys: " + Object.keys(buses[0]).join(", "));
+        dbg("First bus BlockID=" + buses[0].BlockID + " VehicleID=" + buses[0].VehicleID + " Dir=" + buses[0].Direction);
+      }
+
+      busList = buses;
+      lastUpdate = new Date();
+      refreshSec = 30;
+      setStatus("live", "LIVE · " + lastUpdate.toLocaleTimeString());
+      renderTimeline();
+
+    } catch(e) {
+      dbg("ERROR: " + e.message);
+      setStatus("off", "ERROR");
+      showErr("Parse error: " + e.message);
+    }
+    cleanup();
+  };
+
+  script.src = "https://www3.septa.org/hackathon/TransitView/?route=" + encodeURIComponent(myRoute) + "&callback=" + cbName;
+  dbg("URL: " + script.src);
+
+  script.onerror = function() {
+    clearTimeout(timeout);
+    cleanup();
+    dbg("Script load error (network/CORS)");
+    setStatus("off", "OFFLINE");
+    showErr("Can't reach SEPTA API. Check connection.");
+  };
+
+  document.head.appendChild(script);
+  if (!lastUpdate) showMsg("🔍", "Searching...", "Looking for Block " + esc(myBlock) + " on Route " + esc(myRoute));
+}
+
+function renderTimeline() {
+  var buses = busList;
+  dbg("Render: " + buses.length + " buses, looking for block " + myBlock);
+
+  if (buses.length === 0) {
+    document.getElementById("routeBar").classList.add("hidden");
+    showMsg("🚌", "No buses on Route " + esc(myRoute), "Route may not be running right now");
+    return;
+  }
+
+  // Find my bus by BlockID
+  var myBus = null;
+  var myBusIdx = -1;
+  for (var i = 0; i < buses.length; i++) {
+    var bid = String(buses[i].BlockID || buses[i].label || "");
+    if (bid === myBlock) { myBus = buses[i]; myBusIdx = i; break; }
+  }
+
+  dbg("My bus found: " + (myBus ? "YES dir=" + myBus.Direction + " seq=" + myBus.next_stop_sequence : "NO"));
+
+  // Show route bar
+  document.getElementById("routeBar").classList.remove("hidden");
+  document.getElementById("routeNum").textContent = myRoute;
+
+  if (!myBus) {
+    var activeBlocks = [];
+    buses.forEach(function(b) { activeBlocks.push(b.BlockID || b.label || "?"); });
+    document.getElementById("busCount").textContent = buses.length + " buses active";
+    showMsg("⚠️", "Block " + esc(myBlock) + " not found on Route " + esc(myRoute),
+      "Active blocks:<br><b style='color:var(--accent);font-size:12px;letter-spacing:0.05em;line-height:2'>" +
+      activeBlocks.join(" &middot; ") + "</b><br><br><span style='font-size:10px'>Try one of the blocks above</span>");
+    return;
+  }
+
+  var myDir = myBus.Direction;
+
+  // Filter same direction, sort by stop_sequence DESC (highest = furthest ahead = leader)
+  var sameDir = buses.filter(function(b) { return b.Direction === myDir; });
+  sameDir.sort(function(a, b) { return (b.next_stop_sequence || 0) - (a.next_stop_sequence || 0); });
+
+  // Find my position in sorted same-dir list
+  var myPos = -1;
+  for (var j = 0; j < sameDir.length; j++) {
+    var bid2 = String(sameDir[j].BlockID || sameDir[j].label || "");
+    if (bid2 === myBlock) { myPos = j; break; }
+  }
+
+  var leaders = sameDir.slice(0, myPos);
+  var me = sameDir[myPos];
+  var followers = sameDir.slice(myPos + 1);
+
+  document.getElementById("busCount").textContent = buses.length + " total · " + sameDir.length + " " + fmtDir(myDir);
+
+  dbg("Leaders: " + leaders.length + ", Followers: " + followers.length);
+
+  // Build HTML
+  var html = '<div class="timeline-wrap"><div class="timeline">';
+
+  if (leaders.length > 0) {
+    html += '<div class="section-label fade-in">↑ Ahead · ' + leaders.length + '</div>';
+  }
+
+  var allNodes = [];
+  leaders.forEach(function(b, i) { allNodes.push({bus: b, role: "leader", origIdx: i}); });
+  allNodes.push({bus: me, role: "you", origIdx: leaders.length});
+  followers.forEach(function(b, i) { allNodes.push({bus: b, role: "follower", origIdx: leaders.length + 1 + i}); });
+
+  allNodes.forEach(function(node, idx) {
+    var bus = node.bus;
+    var role = node.role;
+    var late = parseInt(bus.late) || 0;
+    var lateClass = late === 0 ? "ontime" : late > 5 ? "bad" : "mild";
+    var lateText = late === 0 ? "On Time" : "+" + late + "m";
+    var seat = seatInfo(bus.estimated_seat_availability);
+    var dir = dirShort(bus.Direction);
+    var blk = bus.BlockID || bus.label || "—";
+    var vid = bus.VehicleID || bus.label || "—";
+
+    // Section label before YOU
+    if (role === "you" && leaders.length > 0) {
+      html += '<div class="section-label fade-in" style="padding-top:2px">● YOU</div>';
+    }
+
+    html += '<div class="bus-node ' + role + ' fade-in" style="animation-delay:' + (idx * 0.03) + 's">';
+    html += '<div class="node-card">';
+
+    html += '<div class="node-row1">';
+    html += '<span class="role-tag ' + role + '">' + roleText(role, node.origIdx, leaders.length) + '</span>';
+    html += '<span class="dir-tag">' + dir + '</span>';
+    html += '<span class="block-num">' + esc(blk) + '</span>';
+    html += '<span class="vehicle-tag">' + busIcon() + ' ' + esc(vid) + '</span>';
+    html += '</div>';
+
+    html += '<div class="node-row2">';
+    html += '<span class="late-tag ' + lateClass + '">' + lateText + '</span>';
+    html += '<span class="seat-tag ' + seat.c + '">' + seatIcon() + ' ' + seat.t + '</span>';
+    html += '</div>';
+
+    html += '</div></div>';
+
+    // Section label after YOU
+    if (role === "you" && followers.length > 0) {
+      html += '<div class="section-label fade-in" style="padding-top:4px">↓ Behind · ' + followers.length + '</div>';
+    }
+  });
+
+  html += '</div></div>';
+  document.getElementById("content").innerHTML = html;
+}
+
+function roleText(role, idx, leaderCount) {
+  if (role === "you") return "YOU";
+  if (role === "leader") {
+    var dist = leaderCount - idx;
+    return dist === 1 ? "LEADER" : "LEADER +" + dist;
+  }
+  return "FOLLOWER";
+}
+
+function fmtDir(d) {
+  if (!d) return "";
+  var l = d.toLowerCase();
+  if (l.indexOf("east") >= 0) return "Eastbound";
+  if (l.indexOf("west") >= 0) return "Westbound";
+  if (l.indexOf("north") >= 0) return "Northbound";
+  if (l.indexOf("south") >= 0) return "Southbound";
+  return d;
+}
+
+function dirShort(d) {
+  if (!d) return "—";
+  var l = d.toLowerCase();
+  if (l.indexOf("east") >= 0) return "EB";
+  if (l.indexOf("west") >= 0) return "WB";
+  if (l.indexOf("north") >= 0) return "NB";
+  if (l.indexOf("south") >= 0) return "SB";
+  return d.slice(0, 2).toUpperCase();
+}
+
+function seatInfo(v) {
+  var map = {
+    MANY_SEATS_AVAILABLE: { t: "Many Seats", c: "many" },
+    FEW_SEATS_AVAILABLE: { t: "Few Seats", c: "few" },
+    STANDING_ROOM_ONLY: { t: "Standing", c: "standing" },
+    FULL: { t: "Full", c: "full" }
+  };
+  return map[v] || { t: "—", c: "na" };
+}
+
+function busIcon() {
+  return '<svg viewBox="0 0 24 24"><path d="M4 16c0 .88.39 1.67 1 2.22V20c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4s-8 .5-8 4v10zm3.5 1c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm1.5-6H6V6h12v5z"/></svg>';
+}
+
+function seatIcon() {
+  return '<svg viewBox="0 0 24 24"><path d="M4 18v3h3v-3h10v3h3v-3h1v-1c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v1h1zm15-8h-2V7c0-1.1-.9-2-2-2H9c-1.1 0-2 .9-2 2v3H5c-1.1 0-2 .9-2 2v1h18v-1c0-1.1-.9-2-2-2zM9 7h6v3H9V7z"/></svg>';
+}
+
+function setStatus(dot, text) {
+  document.getElementById("statusDot").className = "live-dot " + dot;
+  document.getElementById("statusText").textContent = text;
+}
+
+function showMsg(icon, main, sub) {
+  document.getElementById("content").innerHTML =
+    '<div class="msg"><div class="icon">' + icon + '</div><div class="main">' + main + '</div><div class="sub">' + sub + '</div></div>';
+}
+
+function showErr(msg) {
+  document.getElementById("content").innerHTML = '<div class="err-box">' + esc(msg) + '</div>';
+}
+
+function esc(s) {
+  if (!s) return "";
+  var d = document.createElement("div");
+  d.textContent = String(s);
+  return d.innerHTML;
+}
 </script>
 </body>
 </html>
